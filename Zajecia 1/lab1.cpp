@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
         outputResult(func_arguments, math_func.at(selected_f));
     } catch (std::out_of_range aor) {
         cout << "Please enter parameters in format: [FUNCTION NAME] [ARGUMENT] ..." << endl;
-        cout << "Available functions: add, sin, modw" << endl;
+        cout << "Available functions: add, sin, mod" << endl;
     }
 
     return 0;
