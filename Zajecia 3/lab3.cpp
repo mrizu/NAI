@@ -14,16 +14,17 @@ auto coords_generator = [](double minR, double maxR) {
 
 auto neighbour_generator = [](std::pair<double, double> p, double minR, double maxR) {
     std::normal_distribution<> neighbour;;
-    double firstPair, secondPair;
-    do {
-        firstPair = p.first + neighbour(mt_generator) * 0.01;
-    } while (firstPair < minR && firstPair > maxR);
+    double x, y;
 
     do {
-        secondPair = p.second + neighbour(mt_generator) * 0.01;
-    } while (secondPair < minR && secondPair > maxR);
+        x = p.first + neighbour(mt_generator)/200;
+    } while (x < minR && x > maxR);
 
-    return std::pair<double, double>(firstPair, secondPair);
+    do {
+        y = p.second + neighbour(mt_generator)/200;
+    } while (y < minR && y > maxR);
+
+    return std::pair<double, double>(x, y);
 };
 
 auto brute_force = [](auto f, auto domain, int iterations, double minR, double maxR) {
@@ -45,9 +46,9 @@ auto hill_climbing = [](auto f, auto domain, int max_iterations, double minimal_
 
     for (int iteration = 0; iteration < max_iterations; iteration++) {
         std::pair<double, double> new_p;
-        std::pair<double, double> neighbour_p = domain(minimal_d/100, maximal_d/100);
-        new_p.first = current_p.first + neighbour_p.first;
-        new_p.second = current_p.second + neighbour_p.second;
+        std::pair<double, double> close_p = domain(-1.0/200, 1.0/200);
+        new_p.first = current_p.first + close_p.first;
+        new_p.second = current_p.second + close_p.second;
 
         if (f(current_p) > f(new_p)) {
             current_p = new_p;
@@ -68,14 +69,16 @@ auto simulated_annealing = [](auto f, auto domain,
     pairsVector.push_back(best_point);
 
     for (int i = 0; i < max_iterations; ++i) {
-        double uk = uk_dis(mt_generator);
         auto tk = domain(minimal_d, maximal_d);
         if (f(tk) <= f(best_point)) {
             best_point = tk;
             pairsVector.push_back(best_point);
-        } else if (uk < exp(-(std::abs(f(tk) - f(best_point)) / (1 / log(i))))) {
-            best_point = tk;
-            pairsVector.push_back(best_point);
+        } else{
+            double uk = uk_dis(mt_generator);
+            if(uk < exp(-(std::abs(f(tk) - f(best_point)) / (1 / log(i))))) {
+                best_point = tk;
+                pairsVector.push_back(best_point);
+            }
         }
     }
     return best_point;
@@ -130,7 +133,8 @@ void print(int iterations, auto ackley_f, auto himmelblau_f, auto booth_f) {
     for (int i = 0; i < 3; i++) {
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
         auto start = std::chrono::high_resolution_clock::now();
-        auto best_point = simulated_annealing(func[i], coords_generator, neighbour_generator, iterations,
+        auto best_point = simulated_annealing(func[i], coords_generator,
+                                              neighbour_generator, iterations,
                                               domain_range[i].first, domain_range[i].second);
         auto stop = std::chrono::high_resolution_clock::now();
         std::cout << "Best " << f_name[i] << " x = " << best_point.first << " y = " << best_point.second
