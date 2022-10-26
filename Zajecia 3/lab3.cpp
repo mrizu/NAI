@@ -12,6 +12,20 @@ auto coords_generator = [](double minR, double maxR) {
     return std::pair<double, double>(coords(mt_generator), coords(mt_generator));
 };
 
+auto neighbour_generator = [](std::pair<double, double> p, double minR, double maxR) {
+    std::normal_distribution<> neighbour;;
+    double firstPair, secondPair;
+    do {
+        firstPair = p.first + neighbour(mt_generator) * 0.01;
+    } while (firstPair < minR && firstPair > maxR);
+
+    do {
+        secondPair = p.second + neighbour(mt_generator) * 0.01;
+    } while (secondPair < minR && secondPair > maxR);
+
+    return std::pair<double, double>(firstPair, secondPair);
+};
+
 auto brute_force = [](auto f, auto domain, int iterations, double minR, double maxR) {
     auto current_p = domain(minR, maxR);
     auto best_point = current_p;
@@ -42,16 +56,19 @@ auto hill_climbing = [](auto f, auto domain, int max_iterations, double minimal_
     return current_p;
 };
 
-auto simulated_annealing = [](auto f, auto domain, int max_iterations, double minimal_d, double maximal_d) {
+
+auto simulated_annealing = [](auto f, auto domain,
+        const std::function<std::pair<double, double>(std::pair<double, double>, double, double)> &neighbour,
+        int max_iterations, double minimal_d, double maximal_d) {
 
     std::vector<std::pair<double, double>> pairsVector;
-    std::uniform_real_distribution<double> uk_dis(0, 1);
-    double uk = uk_dis(mt_generator);
+    std::uniform_real_distribution<double> uk_dis(0.0, 1.0);
 
     auto best_point = domain(minimal_d, maximal_d);
     pairsVector.push_back(best_point);
 
     for (int i = 0; i < max_iterations; ++i) {
+        double uk = uk_dis(mt_generator);
         auto tk = domain(minimal_d, maximal_d);
         if (f(tk) <= f(best_point)) {
             best_point = tk;
@@ -64,15 +81,17 @@ auto simulated_annealing = [](auto f, auto domain, int max_iterations, double mi
     return best_point;
 };
 
-void print(int iterations, auto ackley_f, auto himmelblau_f, auto booth_f){
+void print(int iterations, auto ackley_f, auto himmelblau_f, auto booth_f) {
     std::vector<std::function<double(std::pair<double, double> pair)>> func = {ackley_f, himmelblau_f, booth_f};
     std::vector<std::string> f_name = {"Ackley", "Himmelblau", "Booth"};
-    std::vector<std::pair<double, double>> domain_range = {{-5, 5}, {-10, 10}, {-5, 5}};
+    std::vector<std::pair<double, double>> domain_range = {{-5,  5},
+                                                           {-10, 10},
+                                                           {-5,  5}};
 
     std::cout << "=======================================================================================" << std::endl;
     std::cout << "Brute force" << std::endl;
     std::cout << "=======================================================================================" << std::endl;
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++) {
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
         auto start = std::chrono::high_resolution_clock::now();
         auto best_point = brute_force(func[i], coords_generator, iterations,
@@ -81,6 +100,7 @@ void print(int iterations, auto ackley_f, auto himmelblau_f, auto booth_f){
         std::cout << "Best " << f_name[i] << " x = " << best_point.first << " y = " << best_point.second
                   << " | result: " << func[i](best_point)
                   << " | time: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()
+                  << "ms"
                   << std::endl;
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
     }
@@ -89,15 +109,16 @@ void print(int iterations, auto ackley_f, auto himmelblau_f, auto booth_f){
     std::cout << "Hill Climbing" << std::endl;
     std::cout << "=======================================================================================" << std::endl;
 
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++) {
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
         auto start = std::chrono::high_resolution_clock::now();
         auto best_point = hill_climbing(func[i], coords_generator, iterations,
-                                      domain_range[i].first, domain_range[i].second);
+                                        domain_range[i].first, domain_range[i].second);
         auto stop = std::chrono::high_resolution_clock::now();
         std::cout << "Best " << f_name[i] << " x = " << best_point.first << " y = " << best_point.second
                   << " | result: " << func[i](best_point)
                   << " | time: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()
+                  << "ms"
                   << std::endl;
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
     }
@@ -106,15 +127,16 @@ void print(int iterations, auto ackley_f, auto himmelblau_f, auto booth_f){
     std::cout << "Simulated Annealing" << std::endl;
     std::cout << "=======================================================================================" << std::endl;
 
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++) {
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
         auto start = std::chrono::high_resolution_clock::now();
-        auto best_point = simulated_annealing(func[i], coords_generator, iterations,
-                                        domain_range[i].first, domain_range[i].second);
+        auto best_point = simulated_annealing(func[i], coords_generator, neighbour_generator, iterations,
+                                              domain_range[i].first, domain_range[i].second);
         auto stop = std::chrono::high_resolution_clock::now();
         std::cout << "Best " << f_name[i] << " x = " << best_point.first << " y = " << best_point.second
                   << " | result: " << func[i](best_point)
                   << " | time: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()
+                  << "ms"
                   << std::endl;
         std::cout << "-----------------------------------------------------------------------------------" << std::endl;
     }
@@ -136,6 +158,6 @@ int main() {
                pow((2 * pair.first + pair.second - 5), 2);
     };
 
-    print(100000,ackley_f, himmelblau_f, booth_f);
+    print(100000, ackley_f, himmelblau_f, booth_f);
     return 0;
 }
