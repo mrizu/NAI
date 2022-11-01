@@ -1,65 +1,61 @@
 #include <iostream>
 #include <vector>
-#include <functional>
 #include <random>
+
+using genotype_t = std::vector<int>;
+using phenotype_t = std::vector<genotype_t>;
 std::random_device rd;
 std::mt19937 mt_generator(rd());
-auto genetic_algorithm = [](
-        auto initial_population, auto fitness, auto term_condition,
-        auto selection, double p_crossover,
-        auto crossover, double p_mutation,  auto mutation) {
-    using namespace std;
-    uniform_real_distribution<double> uniform(0.0,1.0);
-    auto population = initial_population;
-    vector<double> population_fit = fitness(population);
-    while (!term_condition(population,population_fit)) {
-        auto parents_indexes = selection(population_fit);
-        decltype(population) new_population;
-        for (int i = 0 ; i < parents_indexes.size(); i+=2) {
-            decltype(initial_population) offspring = {population[i],population[i+1]};
-            if (uniform(mt_generator) < p_crossover) {
-                offspring = crossover(offspring);
-            }
-            for (auto chromosome : offspring) new_population.push_back(chromosome);
-        }
-        for (auto & chromosome : new_population) {
-            chromosome = mutation(chromosome,p_mutation);
-        }
-        population = new_population;
-        population_fit = fitness(population);
+
+std::pair<double, double> decode(genotype_t genotype) {
+    double x = 0.0;
+    double y = 0.0;
+    int half_c = genotype.size() / 2;
+
+    for (int i = 0; i < half_c; i++) {
+        x = x * 2 + genotype[i];
     }
-    return population;
+
+    for (int i = half_c; i < genotype.size(); i++) {
+        y = y * 2 + genotype[i];
+    }
+
+    x = x / pow(2.0, (half_c - 4)) - 7;
+    y = y / pow(2.0, (half_c - 4)) - 7;
+
+    return {x, y};
+}
+
+phenotype_t phenotype_generator(int size) {
+    phenotype_t phenotype;
+    for (int i = 0; i < size; i++){
+        genotype_t genotype;
+        for (int j = 0; j < 100; j++){
+            std::uniform_int_distribution<int> byte(0, 1);
+            genotype.push_back(byte(mt_generator));
+        }
+        phenotype.push_back(genotype);
+    }
+    return phenotype;
+}
+
+auto ackley_f = [](std::pair<double, double> pair) {
+    return -20.0 * exp(-0.2 * sqrt(0.5 * (pow(pair.first, 2) + pow(pair.second, 2)))) -
+           exp(0.5 * (cos(2 * M_PI * pair.first) + cos(2 * M_PI * pair.second))) + exp(1) + 20;
 };
-using chromosome_t = std::vector<int>;
-using population_t = std::vector<chromosome_t>;
-std::vector<double> fintess_function(population_t pop){
-    return {};
+
+double fitness_function(genotype_t &genotype) {
+    return 1.0 / ackley_f(decode(genotype));
 }
-std::vector<int> selection_empty(std::vector<double> fitnesses) {
-    return {};
-}
-std::vector<chromosome_t > crossover_empty(std::vector<chromosome_t > parents) {
-    return parents;
-}
-chromosome_t mutation_empty(chromosome_t parents, double p_mutation) {
-    return parents;
-}
+
 int main() {
     using namespace std;
-    population_t population = {{1,0,1,0,1,0,1}, {1,0,1,0,1,0,1}};
-    auto result = genetic_algorithm(population,
-                                    fintess_function,
-                                    [](auto a, auto b){return true;},
-                                    selection_empty, 1.0,
-                                    crossover_empty,
-                                    0.01, mutation_empty);
-    for (chromosome_t chromosome: result) {
-        cout << "[";
-        for (int p: chromosome) {
-            cout << p;
-        }
-        cout << "] ";
+    phenotype_t phenotype = phenotype_generator(100 + (23366 % 10) * 2);
+
+    for (genotype_t &genotype: phenotype) {
+        pair<double, double> decoded = decode(genotype);
+       cout << "x: "<< decoded.first << " y: "<<  decoded.second << " | fitness: " << fitness_function(genotype) << endl;
     }
-    cout << endl;
+
     return 0;
 }
