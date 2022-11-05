@@ -3,40 +3,47 @@
 #include <random>
 
 using genotype_t = std::vector<int>;
-using phenotype_t = std::vector<genotype_t>;
+using chromosome_t = std::vector<genotype_t>;
 std::random_device rd;
 std::mt19937 mt_generator(rd());
 
 std::pair<double, double> decode(genotype_t genotype) {
     double x = 0.0;
     double y = 0.0;
+    double base_x = 1.0;
+    double base_y = 1.0;
     int half_c = genotype.size() / 2;
 
     for (int i = 0; i < half_c; i++) {
-        x = x * 2 + genotype[i];
+        if (genotype[i] == 1){
+            x += base_x;
+        }
+        base_x = base_x * 2;
     }
 
     for (int i = half_c; i < genotype.size(); i++) {
-        y = y * 2 + genotype[i];
+        if (genotype[i] == 1){
+            y += base_y;
+        }
+        base_y = base_y * 2;
     }
-
-    x = x / pow(2.0, (half_c - 4)) - 7;
-    y = y / pow(2.0, (half_c - 4)) - 7;
+    x = x / pow(2.0, (half_c - 4)) - 8;
+    y = y / pow(2.0, (half_c - 4)) - 8;
 
     return {x, y};
 }
 
-phenotype_t phenotype_generator(int size) {
-    phenotype_t phenotype;
+chromosome_t chromosome_generator(int size) {
+    chromosome_t chromosome;
     for (int i = 0; i < size; i++){
         genotype_t genotype;
         for (int j = 0; j < 100; j++){
             std::uniform_int_distribution<int> byte(0, 1);
             genotype.push_back(byte(mt_generator));
         }
-        phenotype.push_back(genotype);
+        chromosome.push_back(genotype);
     }
-    return phenotype;
+    return chromosome;
 }
 
 auto ackley_f = [](std::pair<double, double> pair) {
@@ -50,9 +57,9 @@ double fitness_function(genotype_t &genotype) {
 
 int main() {
     using namespace std;
-    phenotype_t phenotype = phenotype_generator(100 + (23366 % 10) * 2);
+    chromosome_t chromosome = chromosome_generator(100 + (23366 % 10) * 2);
 
-    for (genotype_t &genotype: phenotype) {
+    for (genotype_t &genotype: chromosome) {
         pair<double, double> decoded = decode(genotype);
        cout << "x: "<< decoded.first << " y: "<<  decoded.second << " | fitness: " << fitness_function(genotype) << endl;
     }
