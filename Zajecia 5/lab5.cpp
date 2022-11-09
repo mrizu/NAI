@@ -2,6 +2,8 @@
 #include <vector>
 #include <random>
 
+//TODO Zmienić size chromosomu na ten z numerkiem s23366, zmienic mutacje na jednorodną, ogarnąć dlaczego fitness 1 nie jest punktami 0,0
+
 using chromosome_t = std::vector<int>;
 using population_t = std::vector<chromosome_t>;
 std::random_device rd;
@@ -79,7 +81,7 @@ population_t population_generator(int size) {
 std::vector<int> selection(std::vector<double> fitnesses) {
     std::vector<int> indexes;
     std::vector<int> roulette_arr;
-    int size = 100 + (23366 % 10) * 2;
+    int size = fitnesses.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j<fitnesses[i]*100; j++){
             roulette_arr.push_back(i);
