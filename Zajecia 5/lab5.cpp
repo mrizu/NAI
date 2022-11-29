@@ -67,7 +67,7 @@ population_t population_generator(int size) {
     population_t population;
     for (int i = 0; i < size; i++) {
         chromosome_t chromosome;
-        for (int j = 0; j < 100; j++) {
+        for (int j = 0; j < 100 + (23366 % 10) * 2; j++) {
             std::uniform_int_distribution<int> byte(0, 1);
             chromosome.push_back(byte(mt_generator));
         }
@@ -76,28 +76,11 @@ population_t population_generator(int size) {
     return population;
 }
 
-std::vector<int> selection(std::vector<double> fitnesses) {
-    std::vector<int> indexes;
-    std::vector<int> roulette_arr;
-    int size = 100 + (23366 % 10) * 2;
-    for (int i = 0; i < size; i++){
-        for (int j = 0; j<fitnesses[i]*100; j++){
-            roulette_arr.push_back(i);
-        }
-    }
-
-    std::uniform_int_distribution<int> dis(0, roulette_arr.size());
-    for (int i = 0; i < size; i++){
-        indexes.push_back(dis(mt_generator));
-    }
-    return indexes;
-}
-
 std::vector<chromosome_t> crossover(std::vector<chromosome_t> parents) {
     chromosome_t child1;
     chromosome_t child2;
     std::vector<chromosome_t> offspring;
-    std::uniform_int_distribution<int> dis(0, 99);
+    std::uniform_int_distribution<int> dis(0, parents[0].size());
     int cross_p = dis(mt_generator);
 
     for (int i = 0; i < cross_p; i++){
@@ -116,13 +99,33 @@ std::vector<chromosome_t> crossover(std::vector<chromosome_t> parents) {
 
 chromosome_t mutation(chromosome_t chromosome, double p_mutation) {
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
-    if (uniform(mt_generator) < p_mutation){
-        std::uniform_int_distribution<int> mut(0, 99);
-        if (chromosome[mut(mt_generator)] == 1){
-            chromosome[mut(mt_generator)] = 0;
-        }else chromosome[mut(mt_generator)] = 1;
+    for (int i = 0; i < chromosome.size();i++){
+        if (uniform(mt_generator) < p_mutation){
+            if (chromosome[i] == 1){
+                chromosome[i] = 0;
+            }else chromosome[i] = 1;
+        }
     }
+
     return chromosome;
+}
+
+std::vector<int> selection(std::vector<double> fitnesses) {
+    std::vector<int> indexes;
+    std::vector<int> roulette_arr;
+    int size = fitnesses.size();
+
+    for (int i = 0; i < size; i++){
+        for (int j = 0; j<fitnesses[i]*100; j++){
+            roulette_arr.push_back(i);
+        }
+    }
+
+    std::uniform_int_distribution<int> dis(0, roulette_arr.size());
+    for (int i = 0; i < size; i++){
+        indexes.push_back(dis(mt_generator));
+    }
+    return indexes;
 }
 
 auto ackley_f = [](std::pair<double, double> pair) {
@@ -131,7 +134,7 @@ auto ackley_f = [](std::pair<double, double> pair) {
 };
 
 double fitness_function(chromosome_t &chromosome) {
-    return 1.0 / (1.0 + abs(ackley_f(decode(chromosome))));
+    return 1.0 / (1.0 + (ackley_f(decode(chromosome))));
 }
 
 std::vector<double> fitness_population(population_t &population) {
@@ -146,7 +149,7 @@ std::vector<double> fitness_population(population_t &population) {
 bool term_condition(population_t &population, std::vector<double> population_fit){
     bool found_good_fit = false;
     for (int i = 0; i < population_fit.size(); i++){
-        if (population_fit[i] == 1){
+        if (population_fit[i] >= 0.9){
             found_good_fit = true;
         }
     }
@@ -155,7 +158,7 @@ bool term_condition(population_t &population, std::vector<double> population_fit
 
 int main() {
     using namespace std;
-    population_t population = population_generator(100 + (23366 % 10) * 2);
+    population_t population = population_generator(100);
     auto result = genetic_algorithm(population,
                                     fitness_population,
                                     term_condition,
@@ -164,11 +167,12 @@ int main() {
 
     for (chromosome_t &chromosome: result) {
         pair<double, double> decoded = decode(chromosome);
-        if (fitness_function(chromosome) == 1) {
-            cout << "----------------------------------------------------------------------------------;" << endl;
+        if (fitness_function(chromosome) >= 0.9) {
+            cout << "----------------------------------------------------------------------------------" << endl;
             cout << "X: " << decoded.first << " Y: " << decoded.second << " | FITNESS: " <<
-                fitness_function(chromosome)<< endl;
-            cout << "----------------------------------------------------------------------------------;" << endl;
+                 fitness_function(chromosome)<< endl;
+            cout << "----------------------------------------------------------------------------------" << endl;
+            break;
         }else{
             cout << "x: " << decoded.first << " y: " << decoded.second << " | fitness: " << fitness_function(chromosome)
                  << endl;
