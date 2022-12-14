@@ -18,13 +18,13 @@ int main(int argc, char **argv) {
 
     namedWindow("Settings", WINDOW_AUTOSIZE);
 
-    int iLowH = 170;
+    int iLowH = 169;
     int iHighH = 179;
 
-    int iLowS = 200;
-    int iHighS = 255;
+    int iLowS = 49;
+    int iHighS = 190;
 
-    int iLowV = 45;
+    int iLowV = 84;
     int iHighV = 255;
 
     createTrackbar("LowH", "Settings", &iLowH, 179);
@@ -68,13 +68,18 @@ int main(int argc, char **argv) {
             Moments m1 = moments(biggestContours[0], false);
             Point p1_1 = {(int) ((m1.m10 / m1.m00) + 10), (int) ((m1.m01 / m1.m00) + 5)};
             Point p1_2 = {(int) ((m1.m10 / m1.m00) + 10), (int) ((m1.m01 / m1.m00) + 8)};
+            double y1 = m1.m01 / m1.m00;
 
             Moments m2 = moments(biggestContours[1], false);
             Point p2_1 = {(int) ((m2.m10 / m2.m00) + 10), (int) ((m2.m01 / m2.m00) + 5)};
             Point p2_2 = {(int) ((m2.m10 / m2.m00) + 10), (int) ((m2.m01 / m2.m00) + 10)};
+            double y2 = m2.m01 / m2.m00;
 
-            line(src_image, p1_1, p2_1, Scalar(0, 0, 255), 3, LINE_8);
-            line(src_image, p1_2, p2_2, Scalar(255,255,0), 2, LINE_8);
+            if (abs(y1-y2) <= 25){
+                line(src_image, p1_1, p2_1, Scalar(0, 0, 255), 3, LINE_8);
+                line(src_image, p1_2, p2_2, Scalar(255,255,0), 2, LINE_8);
+            }
+
         }
         imshow("Red connect", src_image);
     }
